@@ -1,5 +1,6 @@
 const SUPABASE_URL="https://qhqlvknmkpiwgvjbyetp.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_Nx-gEll1DYYydixyCjQ80Q_JG5YUGQt";
+const VAPID_PUBLIC_KEY = "BLgd9LoQJd7JBYbY9qKi9xj0MGjXe8sYOFjRqcvZ3HToN5XEz2ffygO4GIyiRa0ItwiPruFOkRrJo-P4vSPgkwg";
 const db=window.supabase?.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -7,11 +8,98 @@ let matches=[],sportFilter="all";
 const fmtDate=v=>{const d=new Date(v);return isNaN(d)?"Date TBC":d.toLocaleString([],{dateStyle:"medium",timeStyle:"short"});};
 const sportIcon={Football:"⚽",Basketball:"🏀",Volleyball:"🏐",Handball:"🤾",Athletics:"🏃"};
 function durationText(m){if(!m.duration_minutes)return "Duration not set";const n=Number(m.duration_minutes);return `${n} min${m.period_count>1?` · ${m.period_count} periods of ${m.period_minutes||Math.ceil(n/m.period_count)} min`:""}`;}
-function card(m){let st=m.status||"upcoming";let clock=m.status==="live"&&m.timer_started_at?` · ${Math.max(0,Math.floor((Date.now()-new Date(m.timer_started_at).getTime())/60000))}'`:"";let poll=st==="upcoming"&&new Date(m.kickoff)>new Date()?`<div class="fan-poll" data-poll="${esc(m.id)}"><b>Who will win?</b><div class="poll-buttons"><button type="button" data-vote="home" data-match="${esc(m.id)}">${esc(m.home)}</button><button type="button" data-vote="draw" data-match="${esc(m.id)}">Draw</button><button type="button" data-vote="away" data-match="${esc(m.id)}">${esc(m.away)}</button></div><div class="poll-results" id="poll-${esc(m.id)}">Loading votes…</div><small>One vote per browser for this match. Voting closes at kick-off.</small></div>`:"";return `<article class="match-card"><div class="match-meta"><span>${sportIcon[m.sport]||"🏅"} ${esc(m.sport||"Sport")} · ${esc(m.competition)}</span><span class="status ${esc(st)}">${st==="finished"?"FULL TIME":st==="live"?"● LIVE":st.toUpperCase()}</span></div><div class="teams"><span>${esc(m.home)}</span><span class="score">${st==="upcoming"?"—":Number(m.home_score)||0}</span><span>${esc(m.away)}</span><span class="score">${st==="upcoming"?"—":Number(m.away_score)||0}</span></div><div class="venue">${fmtDate(m.kickoff)}${m.venue?" · "+esc(m.venue):""}</div><div class="clockline">${durationText(m)}${clock}</div>${m.note?`<p class="notice">${esc(m.note)}</p>`:""}${poll}</article>`}
+function card(m){let st=m.status||"upcoming";let clock=m.status==="live"&&m.timer_started_at?` · ${Math.max(0,Math.floor((Date.now()-new Date(m.timer_started_at).getTime())/60000))}'`:"";let poll=st==="upcoming"&&new Date(m.kickoff)>new Date()?`<div class="fan-poll" data-poll="${esc(m.id)}"><b>Who will win?</b><div class="poll-buttons"><button type="button" data-vote="home" data-match="${esc(m.id)}">${esc(m.home)}</button><button type="button" data-vote="draw" data-match="${esc(m.id)}">Draw</button><button type="button" data-vote="away" data-match="${esc(m.id)}">${esc(m.away)}</button></div><div class="poll-results" id="poll-${esc(m.id)}">Loading votes…</div><small>One vote per browser for this match. Voting closes at kick-off.</small></div>`:"";let alertButton=st==="upcoming"&&m.kickoff&&new Date(m.kickoff)>new Date()?`<button type="button" data-alert="${esc(m.id)}">🔔 Get Match Alerts</button>`:"";return `<article class="match-card"><div class="match-meta"><span>${sportIcon[m.sport]||"🏅"} ${esc(m.sport||"Sport")} · ${esc(m.competition)}</span><span class="status ${esc(st)}">${st==="finished"?"FULL TIME":st==="live"?"● LIVE":st.toUpperCase()}</span></div><div class="teams"><span>${esc(m.home)}</span><span class="score">${st==="upcoming"?"—":Number(m.home_score)||0}</span><span>${esc(m.away)}</span><span class="score">${st==="upcoming"?"—":Number(m.away_score)||0}</span></div><div class="venue">${fmtDate(m.kickoff)}${m.venue?" · "+esc(m.venue):""}</div><div class="clockline">${durationText(m)}${clock}</div>${m.note?`<p class="notice">${esc(m.note)}</p>`:""}${alertButton}${poll}</article>`}
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+    const rawData = atob(base64);
+    return Uint8Array.from(rawData, c => c.charCodeAt(0));
+}
+
+async function enableMatchAlerts(matchId, button) {
+    try {
+        if (!("serviceWorker" in navigator) ||
+            !("PushManager" in window) ||
+            !("Notification" in window)) {
+            alert("Your browser does not support match notifications.");
+            return;
+        }
+
+        if (!VAPID_PUBLIC_KEY ||
+            VAPID_PUBLIC_KEY === "PASTE_YOUR_VAPID_PUBLIC_KEY_HERE") {
+            alert("The notification public key has not been added.");
+            return;
+        }
+
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isStandalone =
+            window.matchMedia("(display-mode: standalone)").matches ||
+            navigator.standalone === true;
+
+        if (isIOS && !isStandalone) {
+            alert("Add Harris Livescore to your Home Screen and open it from there first.");
+            return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+            alert("Please allow notifications.");
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Enabling alerts...";
+
+        const registration =
+            await navigator.serviceWorker.register("/sw.js");
+
+        const subscription =
+            await registration.pushManager.getSubscription() ||
+            await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey:
+                    urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+
+        const { data, error } = await db.functions.invoke(
+            "save-match-subscription",
+            {
+                body: {
+                    match_id: matchId,
+                    subscription: subscription.toJSON()
+                }
+            }
+        );
+
+        if (error) throw error;
+
+        button.textContent = "🔔 Alerts Enabled";
+        alert(data?.message || "Match alerts enabled!");
+
+    } catch (error) {
+        console.error(error);
+        button.textContent = "🔔 Get Match Alerts";
+        alert("Could not enable alerts. Please try again.");
+    } finally {
+        button.disabled = false;
+    }
+}
 function voterToken(){let t=localStorage.getItem("harris_voter_token");if(!t){t=crypto.randomUUID();localStorage.setItem("harris_voter_token",t);}return t;}
 async function loadPolls(){for(const m of matches){if(m.status!=="upcoming"||new Date(m.kickoff)<=new Date())continue;let {data,error}=await db.rpc("get_match_vote_counts",{p_match_id:m.id});let el=$("poll-"+m.id);if(error||!el)continue;let v=Array.isArray(data)?data[0]:data;if(!v)continue;let h=+v.home_votes||0,d=+v.draw_votes||0,a=+v.away_votes||0,total=+v.total_votes||0;let pct=n=>total?Math.round(n*100/total):0;el.innerHTML=`${total} vote${total===1?"":"s"} · ${esc(m.home)} ${pct(h)}% · Draw ${pct(d)}% · ${esc(m.away)} ${pct(a)}%`;}}
 async function submitVote(matchId,choice){let m=matches.find(x=>String(x.id)===String(matchId));if(!m||m.status!=="upcoming"||new Date(m.kickoff)<=new Date()){alert("Voting has closed for this match.");return;}let {error}=await db.rpc("cast_match_vote",{p_match_id:matchId,p_voter_token:voterToken(),p_choice:choice});if(error){alert(error.message.includes("already voted")?"You have already voted in this match.":error.message);return;}await loadPolls();}
 document.addEventListener("click",e=>{let b=e.target.closest("button[data-vote]");if(b)submitVote(b.dataset.match,b.dataset.vote);});
+document.addEventListener("click", e => {
+    const b = e.target.closest("button[data-alert]");
+    if (b) enableMatchAlerts(b.dataset.alert, b);
+});
+document.addEventListener("click", e => {
+    const button = e.target.closest("button[data-alert]");
+    if (button) {
+        enableMatchAlerts(button.dataset.alert, button);
+    }
+});
 function startWatcherCount(){if(!db)return;let ch=db.channel("harris-site-visitors",{config:{presence:{key:crypto.randomUUID()}}});ch.on("presence",{event:"sync"},()=>{$("watcherCount").textContent=Object.keys(ch.presenceState()).length;}).subscribe(async status=>{if(status==="SUBSCRIBED")await ch.track({online_at:new Date().toISOString()});});}
 function visible(){return sportFilter==="all"?matches:matches.filter(m=>(m.sport||"Football")===sportFilter)}
 function render(){let ms=visible();for(const [id,list] of [["liveList",ms.filter(m=>m.status==="live")],["fixtureList",ms.filter(m=>m.status==="upcoming").sort((a,b)=>new Date(a.kickoff)-new Date(b.kickoff))],["resultList",ms.filter(m=>m.status==="finished").sort((a,b)=>new Date(b.kickoff)-new Date(a.kickoff))]])$(id).innerHTML=list.length?list.map(card).join(""):`<div class="match-card empty">No ${id==="liveList"?"live matches":id==="fixtureList"?"upcoming fixtures":"results"} published yet.</div>`;renderStandings(ms);renderAdmin();}
