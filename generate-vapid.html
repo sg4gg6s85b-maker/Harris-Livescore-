@@ -1,48 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Harris Livescore - VAPID Generator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Harris Livescore VAPID Generator</title>
 </head>
 <body>
-    <h2>Harris Livescore VAPID Keys</h2>
-    <button onclick="generateKeys()">Generate Keys</button>
+    <h2>Harris Livescore 🔔</h2>
+    <h3>VAPID Key Generator</h3>
 
-    <h3>Public Key</h3>
-    <textarea id="publicKey" rows="4" cols="40"></textarea>
+    <button id="generate">Generate Valid Keys</button>
 
-    <h3>Private Key</h3>
-    <textarea id="privateKey" rows="4" cols="40"></textarea>
+    <p>Public Key</p>
+    <textarea id="publicKey" rows="5" style="width:95%"></textarea>
+
+    <p>Private Key</p>
+    <textarea id="privateKey" rows="5" style="width:95%"></textarea>
 
     <script>
         function base64url(bytes) {
             let binary = "";
-            bytes.forEach(b => binary += String.fromCharCode(b));
+            bytes.forEach(b => {
+                binary += String.fromCharCode(b);
+            });
+
             return btoa(binary)
                 .replace(/\+/g, "-")
                 .replace(/\//g, "_")
                 .replace(/=+$/, "");
         }
 
-        async function generateKeys() {
-            const keys = await crypto.subtle.generateKey(
-                { name: "ECDSA", namedCurve: "P-256" },
-                true,
-                ["sign", "verify"]
-            );
+        document.getElementById("generate").onclick =
+            async function () {
+                try {
+                    const keys = await crypto.subtle.generateKey(
+                        {
+                            name: "ECDH",
+                            namedCurve: "P-256"
+                        },
+                        true,
+                        ["deriveBits"]
+                    );
 
-            const publicBytes = new Uint8Array(
-                await crypto.subtle.exportKey("raw", keys.publicKey)
-            );
+                    const publicBytes = new Uint8Array(
+                        await crypto.subtle.exportKey(
+                            "raw",
+                            keys.publicKey
+                        )
+                    );
 
-            const privateJwk =
-                await crypto.subtle.exportKey("jwk", keys.privateKey);
+                    const privateJwk =
+                        await crypto.subtle.exportKey(
+                            "jwk",
+                            keys.privateKey
+                        );
 
-            document.getElementById("publicKey").value =
-                base64url(publicBytes);
+                    document.getElementById("publicKey").value =
+                        base64url(publicBytes);
 
-            document.getElementById("privateKey").value =
-                privateJwk.d;
-        }
+                    document.getElementById("privateKey").value =
+                        privateJwk.d;
+
+                } catch (error) {
+                    alert("Key generation failed: " + error.message);
+                }
+            };
     </script>
 </body>
 </html>
