@@ -1,2 +1,4 @@
 [functions.send-match-notification]
 verify_jwt = true
+[functions.save-match-subscription]
+verify_jwt = false
