@@ -35,3 +35,19 @@ $("matchForm").onsubmit=async e=>{e.preventDefault();let f=new FormData(e.curren
 document.querySelectorAll(".sport-chip").forEach(b=>b.onclick=()=>{sportFilter=b.dataset.sport;document.querySelectorAll(".sport-chip").forEach(x=>x.classList.toggle("active",x===b));render();});
 if(db){startWatcherCount();db.auth.getSession().then(({data})=>{if(data.session)showAdmin(data.session.user);});db.channel("match-updates").on("postgres_changes",{event:"*",schema:"public",table:"matches"},load).subscribe();}
 setInterval(()=>{if(matches.length)render();},15000);load();
+// Register Harris Livescore notification service worker
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", async () => {
+        try {
+            const registration =
+                await navigator.serviceWorker.register("/sw.js");
+
+            console.log(
+                "Harris Match Alerts ready:",
+                registration.scope
+            );
+        } catch (error) {
+            console.error("Notification setup failed:", error);
+        }
+    });
+}
