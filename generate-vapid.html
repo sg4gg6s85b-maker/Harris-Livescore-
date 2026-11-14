@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Harris Livescore - VAPID Generator</title>
+</head>
+<body>
+    <h2>Harris Livescore VAPID Keys</h2>
+    <button onclick="generateKeys()">Generate Keys</button>
+
+    <h3>Public Key</h3>
+    <textarea id="publicKey" rows="4" cols="40"></textarea>
+
+    <h3>Private Key</h3>
+    <textarea id="privateKey" rows="4" cols="40"></textarea>
+
+    <script>
+        function base64url(bytes) {
+            let binary = "";
+            bytes.forEach(b => binary += String.fromCharCode(b));
+            return btoa(binary)
+                .replace(/\+/g, "-")
+                .replace(/\//g, "_")
+                .replace(/=+$/, "");
+        }
+
+        async function generateKeys() {
+            const keys = await crypto.subtle.generateKey(
+                { name: "ECDSA", namedCurve: "P-256" },
+                true,
+                ["sign", "verify"]
+            );
+
+            const publicBytes = new Uint8Array(
+                await crypto.subtle.exportKey("raw", keys.publicKey)
+            );
+
+            const privateJwk =
+                await crypto.subtle.exportKey("jwk", keys.privateKey);
+
+            document.getElementById("publicKey").value =
+                base64url(publicBytes);
+
+            document.getElementById("privateKey").value =
+                privateJwk.d;
+        }
+    </script>
+</body>
+</html>
