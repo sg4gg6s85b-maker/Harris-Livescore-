@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Harris Livescore — school fixtures, live scores and results.">
+<title>Harris Livescore | Your School Matches, Live!</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#"><span class="crest">H<span>●</span></span><span>HARRIS <b>LIVESCORE</b><small>Your School Matches, Live!</small></span></a>
+  <nav><a href="#live">Live</a><a href="#fixtures">Fixtures</a><a href="#results">Results</a><a href="#standings">Standings</a><button id="adminOpen" class="outline">Admin</button></nav>
+</header>
+<main>
+<section class="hero">
+ <div><p class="eyebrow">SCHOOL SPORTS • ONE PLATFORM</p><h1>Every school.<br><em>Every goal.</em><br>Every moment.</h1>
+ <p class="sub">Follow school competitions, fixtures and live scores from one place.</p>
+ <a class="button" href="#live">Follow the action ↓</a></div>
+ <div class="hero-score"><div class="live-pill"><i></i> MATCH CENTRE</div><p class="muted">LIVE SCOREBOARD</p><div class="score-row"><span>School A</span><strong>2 — 1</strong><span>School B</span></div><div class="minute">Example display · scores are updated by the administrator</div></div>
+</section>
+<section class="section sport-filter"><div class="section-head"><div><p class="eyebrow">ALL SCHOOL SPORTS</p><h2>Choose a sport</h2></div></div><div class="sport-chips"><button class="sport-chip active" data-sport="all">All sports</button><button class="sport-chip" data-sport="Football">⚽ Football</button><button class="sport-chip" data-sport="Basketball">🏀 Basketball</button><button class="sport-chip" data-sport="Volleyball">🏐 Volleyball</button><button class="sport-chip" data-sport="Handball">🤾 Handball</button><button class="sport-chip" data-sport="Athletics">🏃 Athletics</button></div></section>
+<section class="section fan-strip"><div><strong id="watcherCount">0</strong> people viewing Harris Livescore now</div><span>Welcome to the Harris Fan Zone</span></section>
+<section id="live" class="section"><div class="section-head"><div><p class="eyebrow">MATCH CENTRE</p><h2>Live matches</h2></div><span class="live-pill"><i></i> LIVE UPDATES</span></div><div id="liveList" class="match-grid"></div></section>
+<section id="fixtures" class="section"><div class="section-head"><div><p class="eyebrow">WHAT'S NEXT</p><h2>Upcoming fixtures</h2></div></div><div id="fixtureList" class="match-grid"></div></section>
+<section id="results" class="section"><div class="section-head"><div><p class="eyebrow">FULL TIME</p><h2>Latest results</h2></div></div><div id="resultList" class="match-grid"></div></section>
+<section id="standings" class="section"><div class="section-head"><div><p class="eyebrow">COMPETITION TABLE</p><h2>Standings</h2></div></div><div class="table-wrap"><table><thead><tr><th>#</th><th>School / Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead><tbody id="standingsBody"><tr><td colspan="8" class="empty">Standings will appear when competition data is added.</td></tr></tbody></table></div></section>
+</main>
+<footer><div class="brand"><span class="crest">H<span>●</span></span><span>HARRIS <b>LIVESCORE</b><small>Your School Matches, Live!</small></span></div><p>School sports, brought together.</p><small>© <span id="year"></span> Harris Livescore</small></footer>
+
+<dialog id="adminDialog"><form method="dialog" class="dialog-head"><div><p class="eyebrow">CONTROL ROOM</p><h2>Administrator access</h2></div><button class="close" aria-label="Close">×</button></form>
+<div id="loginPanel" class="admin-panel"><p class="muted">Only the central administrator can publish matches and change scores.</p><label>Administrator email<input id="email" type="email" placeholder="admin@example.com" autocomplete="username"></label><label>Password<input id="password" type="password" placeholder="Password" autocomplete="current-password"></label><button id="loginBtn" class="button full" type="button">Sign in</button><p id="loginMsg" class="notice">Connect your Supabase project using the setup guide before signing in.</p></div>
+<div id="managePanel" class="admin-panel hidden">
+ <div class="admin-top"><span id="adminIdentity"></span><button id="logoutBtn" class="outline" type="button">Sign out</button></div>
+ <h3>Publish a match</h3>
+ <form id="matchForm">
+ <div class="form-grid"><label>Sport<select name="sport" required><option value="Football">Football</option><option value="Basketball">Basketball</option><option value="Volleyball">Volleyball</option><option value="Handball">Handball</option><option value="Athletics">Athletics</option></select></label><label>Competition<input name="competition" required placeholder="Inter-school Championship"></label><label>School / Team 1<input name="home" required></label><label>School / Team 2<input name="away" required></label><label>Venue<input name="venue" placeholder="School field"></label><label>Date & time<input name="kickoff" type="datetime-local" required></label><label>Status<select name="status"><option value="upcoming">Upcoming</option><option value="live">Live</option><option value="finished">Full time</option><option value="postponed">Postponed</option></select></label><label>Team 1 score<input name="home_score" type="number" min="0" value="0"></label><label>Team 2 score<input name="away_score" type="number" min="0" value="0"></label><div class="wide timing-help"><b>Harris Smart Match Clock</b><p>Set each match's duration five minutes before its scheduled start. A reminder appears in the admin panel during that window. Volleyball and athletics can use event/set timing rather than a standard countdown.</p></div><label class="wide">Match note<input name="note" placeholder="Optional update"></label></div>
+ <button class="button" type="submit">Publish match</button><p id="saveMsg" class="notice"></p></form>
+ <h3>Published matches & match controls</h3><p class="notice">Duration controls unlock from 5 minutes before the scheduled start. Start, pause and finish controls remain administrator-controlled.</p><div id="adminMatches"></div>
+</div></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
+</body></html>
